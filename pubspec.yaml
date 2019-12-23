@@ -1,6 +1,6 @@
 name: drtimport
 description: An cli app to help you refactor you dart libraries because VSCode won't.
-version: 1.0.1
+version: 1.0.3
 homepage: https://github.com/bsutton/cli_tools_for_dart
 author: bsutton <bsutton@noojee.com.au>
 

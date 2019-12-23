@@ -21,8 +21,8 @@ class EnumHelper {
   ///
   static String getName<T>(T enumValue,
       {String Function(String value) recase = reCase}) {
-    String name = enumValue.toString();
-    int period = name.indexOf('.');
+    final name = enumValue.toString();
+    final period = name.indexOf('.');
 
     return recase(name.substring(period + 1));
   }
@@ -32,8 +32,8 @@ class EnumHelper {
   }
 
   static T getEnum<T>(String enumName, List<T> values) {
-    String cleanedName = reCase(enumName);
-    for (int i = 0; i < values.length; i++) {
+    final cleanedName = reCase(enumName);
+    for (var i = 0; i < values.length; i++) {
       if (cleanedName == getName(values[i])) {
         return values[i];
       }
