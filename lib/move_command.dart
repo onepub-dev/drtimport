@@ -118,8 +118,7 @@ class MoveCommand extends Command<void> {
       scanned++;
 
       final processing = Library(File(library.path), libRoot);
-      final result =
-          await processing.updateImportStatements(fromPath, toPath);
+      final result = await processing.updateImportStatements(fromPath, toPath);
 
       if (result.changeCount != 0) {
         updated++;

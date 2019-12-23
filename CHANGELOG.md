@@ -1,3 +1,9 @@
+## 1.0.5
+Fixed an logger override.
+
+## 1.0.4
+added example to make pub.dev happy.
+
 ## 1.0.3
 Updated doco, remove lint warnings after upgrade.
 
