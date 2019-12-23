@@ -9,62 +9,63 @@ import 'package:args/command_runner.dart';
 class PatchCommand extends Command<void> {
   @override
   String get description =>
-      "Patches import statements by doing a string replace.";
+      '''Patches import statements by doing a string replace within every import statement.''';
 
   @override
-  String get name => "patch";
+  String get name => 'patch';
 
+  @override
   void run() {
     if (argResults.rest.length != 2) {
       fullusage(argParser);
       exit(-1);
     }
-    String fromPattern = argResults.rest[0];
-    String toPattern = argResults.rest[1];
+    final fromPattern = argResults.rest[0];
+    final toPattern = argResults.rest[1];
 
     process(fromPattern, toPattern);
   }
 
   void process(String fromPattern, String toPattern) async {
-    Directory cwd = Directory(".");
+    final cwd = Directory('.');
 
-    Stream<FileSystemEntity> files = cwd.list(recursive: true);
+    final files = cwd.list(recursive: true);
 
-    List<FileSystemEntity> dartFiles =
-        await files.where((file) => file.path.endsWith(".dart")).toList();
+    final dartFiles =
+        await files.where((file) => file.path.endsWith('.dart')).toList();
 
-    int scanned = 0;
-    int updated = 0;
+    var scanned = 0;
+    var updated = 0;
     for (var file in dartFiles) {
       scanned++;
-      Result result = await replaceString(file, fromPattern, toPattern);
-      File tmpFile = result.tmpFile;
+      final result = await replaceString(file, fromPattern, toPattern);
+      final tmpFile = result.tmpFile;
 
       if (result.changeCount != 0) {
         updated++;
-        FileSystemEntity backupFile = await file.rename(file.path + ".bak");
+        final backupFile = await file.rename(file.path + '.bak');
         await tmpFile.rename(file.path);
         await backupFile.delete();
 
-        print("Updated : ${file.path} changed ${result.changeCount} lines");
+        print('Updated : ${file.path} changed ${result.changeCount} lines');
       }
     }
-    print("Finished: scanned $scanned updated $updated");
+    print('Finished: scanned $scanned updated $updated');
   }
 
   Future<Result> replaceString(
       FileSystemEntity file, String fromPattern, String toPattern) async {
-    Directory systemTempDir = Directory.systemTemp;
+    final systemTempDir = Directory.systemTemp;
 
-    String tmpPath = p.join(systemTempDir.path, file.path);
-    File tmpFile = File(tmpPath);
+    final tmpPath = p.join(systemTempDir.path, file.path);
+    final tmpFile = File(tmpPath);
 
-    Directory tmpDir = Directory(tmpFile.parent.path);
+    final tmpDir = Directory(tmpFile.parent.path);
     await tmpDir.create(recursive: true);
 
-    IOSink tmpSink = tmpFile.openWrite();
+    final tmpSink = tmpFile.openWrite();
 
-    Result result = Result(tmpFile);
+    final result = Result(tmpFile);
 
     await File(file.path)
         .openRead()
@@ -78,11 +79,11 @@ class PatchCommand extends Command<void> {
 
   int replaceLine(
       String line, String fromPattern, String toPattern, IOSink tmpSink) {
-    String newLine = line;
+    var newLine = line;
 
-    int changeCount = 0;
+    var changeCount = 0;
 
-    if (line.startsWith("import")) {
+    if (line.startsWith('import')) {
       newLine = line.replaceAll(fromPattern, toPattern);
     }
     if (line != newLine) {
@@ -94,9 +95,10 @@ class PatchCommand extends Command<void> {
   }
 
   void fullusage(ArgParser parser) {
-    print("Usage: ");
-    print("<from string> <to string>");
-    print("e.g. AppClass app_class");
+    print('Usage: ');
+    print(description);
+    print('<from string> <to string>');
+    print('e.g. AppClass app_class');
     print(parser.usage);
   }
 }

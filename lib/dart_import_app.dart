@@ -1,5 +1,5 @@
 class DartImportApp {
-  static DartImportApp _self = DartImportApp._internal();
+  static final DartImportApp _self = DartImportApp._internal();
 
   bool _debug = false;
 
@@ -15,7 +15,7 @@ class DartImportApp {
 
   void debug(String line) {
     if (isdebugging) {
-      print("DEBUG: ${line}");
+      print('DEBUG: ${line}');
     }
   }
 }

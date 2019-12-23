@@ -12,26 +12,26 @@ import 'package:path/path.dart' as p;
 void main() {
   group('File rename:', () {
     test('rename file', () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        //  "--debug",
-        "a_command2.dart",
-        "a_command.dart"
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        //  '--debug',
+        'a_command2.dart',
+        'a_command.dart'
       ]);
       expect(success, true);
     });
 
     test('rename file back', () async {
       // move it back
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        // "--debug",
-        "a_command.dart",
-        "a_command2.dart"
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        // '--debug',
+        'a_command.dart',
+        'a_command2.dart'
       ]);
       expect(success, true);
     });
@@ -40,41 +40,41 @@ void main() {
   group('Move File To Directory', () {
     test('move file to directory', () async {
       // move file to directory
-      bool success = await run([
-        "move", "--root", "./test/data/", //"--debug"
-        "yaml_me.dart", "util"
+      final success = await run([
+        'move', '--root', './test/data/', //'--debug'
+        'yaml_me.dart', 'util'
       ]);
       expect(success, true);
     });
 
     test('Now move it back', () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        // "--debug",
-        "util/yaml_me.dart",
-        "."
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        // '--debug',
+        'util/yaml_me.dart',
+        '.'
       ]);
       expect(success, true);
     });
   });
 
-  group("Move Directory to Directory", () {
+  group('Move Directory to Directory', () {
     test('util to other', () async {
-      bool success = await run([
-        "move", "--root", "./test/data/",
-        // "--debug",
-        "util", "other"
+      final success = await run([
+        'move', '--root', './test/data/',
+        // '--debug',
+        'util', 'other'
       ]);
       expect(success, true);
     });
 
     test('other to util', () async {
-      bool success = await run([
-        "move", "--root", "./test/data/",
-        // "--debug",
-        "other", "util"
+      final success = await run([
+        'move', '--root', './test/data/',
+        // '--debug',
+        'other', 'util'
       ]);
       expect(success, true);
     });
@@ -82,87 +82,87 @@ void main() {
 
   group('Move Directory to File', () {
     test('Util to other.dart', () async {
-      bool success = await run([
-        "move", "--root", "./test/data/",
-        // "--debug",
-        "util", "other.dart"
+      final success = await run([
+        'move', '--root', './test/data/',
+        // '--debug',
+        'util', 'other.dart'
       ]);
       expect(success, false);
     });
   });
 
   group('Rename a file', () {
-    test("Rename A->A2", () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        //"--debug",
-        "a_command.dart",
-        "a_command2.dart"
+    test('Rename A->A2', () async {
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        //'--debug',
+        'a_command.dart',
+        'a_command2.dart'
       ]);
       expect(success, true);
     });
 
-    test("Rename A2->A", () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        //"--debug",
-        "a_command2.dart",
-        "a_command.dart"
+    test('Rename A2->A', () async {
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        //'--debug',
+        'a_command2.dart',
+        'a_command.dart'
       ]);
       expect(success, true);
     });
   });
 
   group('Move File to directory/file', () {
-    test("Yaml_me.dart to util", () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        // "--debug",
-        "yaml_me.dart",
-        "util/yaml_me.dart"
+    test('Yaml_me.dart to util', () async {
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        // '--debug',
+        'yaml_me.dart',
+        'util/yaml_me.dart'
       ]);
       expect(success, true);
     });
 
-    test("Move Yaml from util", () async {
-      bool success = await run([
-        "move",
-        "--root",
-        "./test/data/",
-        // "--debug",
-        "util/yaml_me.dart",
-        "yaml_me.dart"
+    test('Move Yaml from util', () async {
+      final success = await run([
+        'move',
+        '--root',
+        './test/data/',
+        // '--debug',
+        'util/yaml_me.dart',
+        'yaml_me.dart'
       ]);
       expect(success, true);
     });
   });
 
-  test("Move Service Locator", () async {
-    bool success = await run([
-      "move",
-      "--root",
-      "/home/bsutton/git/squarephone_app",
-      //"--debug",
-      "service_locator.dart",
-      "app/service_locator.dart"
+  test('Move Service Locator', () async {
+    final success = await run([
+      'move',
+      '--root',
+      '/home/bsutton/git/squarephone_app',
+      //'--debug',
+      'service_locator.dart',
+      'app/service_locator.dart'
     ]);
     expect(success, true);
   });
 }
 
 Future<bool> run(List<String> arguments) async {
-  bool success = false;
-  String cwd = p.current;
+  var success = false;
+  final cwd = p.current;
   try {
     print(arguments);
-    CommandRunner<void> runner =
-        CommandRunner("drtimport", "dart import management");
+    final runner =
+        CommandRunner<void>('drtimport', 'dart import management');
 
     runner.addCommand(MoveCommand());
     runner.addCommand(PatchCommand());

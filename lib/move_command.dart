@@ -15,69 +15,71 @@ class MoveCommand extends Command<void> {
   Directory libRoot;
   @override
   String get description =>
-      "Moves a dart library and updates all import statements to reflect its now location.";
+      '''Moves a dart library and updates all import statements to reflect its new location.
+      move <from path> <to path>''';
 
   @override
-  String get name => "move";
+  String get name => 'move';
 
   MoveCommand() {
-    argParser.addOption("root",
-        defaultsTo: ".",
-        help: "The path to the root of your project.",
-        valueHelp: "path");
-    argParser.addFlag("debug",
-        defaultsTo: false, negatable: false, help: "Turns on debug ouput");
-    argParser.addFlag("version",
-        abbr: "v",
+    argParser.addOption('root',
+        defaultsTo: '.',
+        help: 'The path to the root of your project.',
+        valueHelp: 'path');
+    argParser.addFlag('debug',
+        defaultsTo: false, negatable: false, help: 'Turns on debug ouput');
+    argParser.addFlag('version',
+        abbr: 'v',
         defaultsTo: false,
         negatable: false,
-        help: "Outputs the version of drtimport and exits.");
+        help: 'Outputs the version of drtimport and exits.');
   }
 
+  @override
   void run() async {
-    Directory.current = argResults["root"];
+    Directory.current = argResults['root'];
     libRoot = Directory(p.join(Directory.current.path, 'lib'));
 
-    if (argResults["version"] == true) {
+    if (argResults['version'] == true) {
       fullusage();
     }
 
-    if (argResults["debug"] == true) DartImportApp().enableDebug();
+    if (argResults['debug'] == true) DartImportApp().enableDebug();
 
     if (argResults.rest.length != 2) {
       fullusage();
     }
-    if (!await File("pubspec.yaml").exists()) {
+    if (!await File('pubspec.yaml').exists()) {
       fullusage(
-          error: "The pubspec.yaml is missing from: ${Directory.current}");
+          error: 'The pubspec.yaml is missing from: ${Directory.current}');
     }
 
     // check we are in the root.
     if (!await libRoot.exists()) {
-      fullusage(error: "You must run a move from the root of the package.");
+      fullusage(error: 'You must run a move from the root of the package.');
     }
 
     Line.init();
 
     if (DartImportApp().isdebugging) {
-      print("Package Name: ${Line.getProjectName()}");
+      print('Package Name: ${Line.getProjectName()}');
     }
 
-    String from = stripLib(argResults.rest[0]);
+    final from = stripLib(argResults.rest[0]);
 
-    String to = stripLib(argResults.rest[1]);
+    final to = stripLib(argResults.rest[1]);
 
     if (isDirectory(from)) {
       await processDirectory(from, to);
     } else {
-      File fromPath = await validFrom(from);
+      final fromPath = await validFrom(from);
 
       await process(fromPath, to, false);
     }
   }
 
   void processDirectory(String from, String to) async {
-    Directory fromPath = await validFromDirectory(from);
+    final fromPath = await validFromDirectory(from);
 
     for (var entry in fromPath.listSync()) {
       if (entry is File) {
@@ -96,34 +98,34 @@ class MoveCommand extends Command<void> {
         // The target must also be a directory and it must exist
         fullusage(
             error:
-                "The <to> path ${expandPath(to)} MUST be a directory and it must exist");
+                'The <to> path ${expandPath(to)} MUST be a directory and it must exist');
       }
     }
 
-    File toPath = await validTo(to);
+    final toPath = await validTo(to);
 
-    print("Renaming: ${fromPath} to ${toPath}");
+    print('Renaming: ${fromPath} to ${toPath}');
 
-    Stream<FileSystemEntity> files = Directory.current.list(recursive: true);
+    final files = Directory.current.list(recursive: true);
 
-    List<FileSystemEntity> dartFiles =
-        await files.where((file) => file.path.endsWith(".dart")).toList();
+    final dartFiles =
+        await files.where((file) => file.path.endsWith('.dart')).toList();
 
-    List<MoveResult> updatedFiles = List();
-    int scanned = 0;
-    int updated = 0;
+    final updatedFiles = <MoveResult>[];
+    var scanned = 0;
+    var updated = 0;
     for (var library in dartFiles) {
       scanned++;
 
-      Library processing = Library(File(library.path), libRoot);
-      MoveResult result =
+      final processing = Library(File(library.path), libRoot);
+      final result =
           await processing.updateImportStatements(fromPath, toPath);
 
       if (result.changeCount != 0) {
         updated++;
         updatedFiles.add(result);
 
-        print("Updated : ${library.path} changed ${result.changeCount} lines");
+        print('Updated : ${library.path} changed ${result.changeCount} lines');
       }
     }
 
@@ -132,7 +134,7 @@ class MoveCommand extends Command<void> {
     await fromPath.exists();
 
     await fromPath.rename(toPath.path);
-    print("Finished: scanned $scanned updated $updated");
+    print('Finished: scanned $scanned updated $updated');
   }
 
   ///
@@ -144,7 +146,7 @@ class MoveCommand extends Command<void> {
     // will just pass in the name as the see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
 
-    File actualPath = File(p.canonicalize(p.join("lib", from)));
+    final actualPath = File(p.canonicalize(p.join('lib', from)));
 
     if (!await actualPath.exists()) {
       fullusage(
@@ -163,7 +165,7 @@ class MoveCommand extends Command<void> {
     // will just pass in the name as the see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
 
-    Directory actualPath = Directory(p.canonicalize(p.join("lib", from)));
+    final actualPath = Directory(p.canonicalize(p.join('lib', from)));
 
     if (!await actualPath.exists()) {
       fullusage(
@@ -181,50 +183,49 @@ class MoveCommand extends Command<void> {
     // the imports don't include lib so devs
     // will just pass in the name as the see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
-    File actualPath = File(p.canonicalize(p.join("lib", to)));
+    final actualPath = File(p.canonicalize(p.join('lib', to)));
     if (!await actualPath.parent.exists()) {
       fullusage(
-          error: "The <toPath> directory does not exist: ${actualPath.parent}");
+          error: 'The <toPath> directory does not exist: ${actualPath.parent}');
     }
     return actualPath;
   }
 
   void overwrite(List<MoveResult> updatedFiles) async {
-    for (MoveResult result in updatedFiles) {
+    for (final result in updatedFiles) {
       await result.library.overwrite(result.tmpFile);
     }
   }
 
   String expandPath(String path) {
-    return p.join("lib", path);
+    return p.join('lib', path);
   }
 
   bool isDirectory(String path) {
-    FileSystemEntityType fromType = FileSystemEntity.typeSync(expandPath(path));
+    final fromType = FileSystemEntity.typeSync(expandPath(path));
     return (fromType == FileSystemEntityType.directory);
   }
 
   void fullusage({String error}) async {
     if (error != null) {
-      print("Error: $error");
-      print("");
+      print('Error: $error');
+      print('');
     }
 
-    PubSpec pubSpec = PubSpec();
+    final pubSpec = PubSpec();
     await pubSpec.load();
-    String version = pubSpec.version;
-    print("drtimport version: ${version}");
-    print("Usage: ");
-    print("Run the move from the root of the package");
-    print("move <from path> <to path>");
-    print("e.g. move apps/string.dart  util/string.dart");
+    final version = pubSpec.version;
+    print('drtimport version: ${version}');
+    print('Usage: ');
+    print('move <from path> <to path>');
+    print('e.g. move apps/string.dart  util/string.dart');
     print(argParser.usage);
 
     exit(-1);
   }
 
   String stripLib(String path) {
-    if (path.startsWith("lib/")) {
+    if (path.startsWith('lib/')) {
       return path.substring('lib/'.length);
     } else {
       fullusage(error: 'The path "$path" must start with "lib/"');

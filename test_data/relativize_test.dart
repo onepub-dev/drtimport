@@ -5,11 +5,11 @@ import 'package:test/test.dart';
 
 void main() {
   test('relativize', () {
-    expect(relativize("/dir1/dir2", "/dir1/dir2/dir3/file1"), "dir3/file1");
-    expect(relativize("dir1/dir2", "dir1/dir2/dir3/file1"), "dir3/file1");
+    expect(relativize('/dir1/dir2', '/dir1/dir2/dir3/file1'), 'dir3/file1');
+    expect(relativize('dir1/dir2', 'dir1/dir2/dir3/file1'), 'dir3/file1');
 
-    // expect(relativize("/lib/app/debug/debug.dart", "/abc/def/three.dart"),
-    //     "../../abc/def/three.dart");
+    // expect(relativize('/lib/app/debug/debug.dart', '/abc/def/three.dart'),
+    //     '../../abc/def/three.dart');
 
     // for an import you have the old path
     // old: lib/util/debug.dart
@@ -19,9 +19,9 @@ void main() {
     // new import path: ../../widget/timezone.dart
     //
     expect(
-        calcNewImportPath("/lib/util/debug.dart", "../widget/timezone.dart",
-            "/lib/app/debug/debug.dart"),
-        "../../widget/timezone.dart");
+        calcNewImportPath('/lib/util/debug.dart', '../widget/timezone.dart',
+            '/lib/app/debug/debug.dart'),
+        '../../widget/timezone.dart');
   });
 }
 
@@ -36,7 +36,7 @@ void main() {
 /// Result: ../../widget/timezone.dart
 String calcNewImportPath(
     String originalLibrary, String import, String newLibrary) {
-  String absImport = resolveImport(originalLibrary, import);
+  final absImport = resolveImport(originalLibrary, import);
   return p.relative(absImport, from: p.dirname(newLibrary));
 }
 
@@ -66,7 +66,7 @@ String resolveImport(String library, String import) {
 //   // use the absolute path of [importedBy]
 //   // to calculate the absolute path of [relativeImportPath]
 //   for (int i; i < importedParts.length; i++) {
-//     if (importedParts[i] == "..") {
+//     if (importedParts[i] == '..') {
 //       importedByParts.pop();
 //     } else {
 //       break;
@@ -76,8 +76,8 @@ String resolveImport(String library, String import) {
 
 // returns the new path to the original import.
 String resolve(String newPath, String originalImport) {
-  String absoluteImport = p.absolute(originalImport);
-  String absoluteNewPath = p.absolute(newPath);
+  final absoluteImport = p.absolute(originalImport);
+  final absoluteNewPath = p.absolute(newPath);
   return relativize(absoluteNewPath, absoluteImport);
 }
 
@@ -100,16 +100,16 @@ String resolve(String newPath, String originalImport) {
 String relativize(String from, String to) {
   from = p.canonicalize(from);
   to = p.canonicalize(to);
-  List<String> fromParts = p.split(from);
-  List<String> toParts = p.split(to);
-  int fromDepth = fromParts.length;
-  int toDepth = toParts.length;
+  final fromParts = p.split(from);
+  final toParts = p.split(to);
+  final fromDepth = fromParts.length;
+  final toDepth = toParts.length;
 
-  int commonLength = min(fromDepth, toDepth);
+  final commonLength = min(fromDepth, toDepth);
 
   // determine the common part of the paths
-  int commonDepth = 0;
-  for (int i = 0; i < commonLength; i++) {
+  var commonDepth = 0;
+  for (var i = 0; i < commonLength; i++) {
     if (fromParts[i] == toParts[i]) {
       commonDepth++;
     } else {
@@ -117,13 +117,13 @@ String relativize(String from, String to) {
     }
   }
 
-  String toUnique = "";
+  var toUnique = '';
   // get the unique path of to
-  for (int i = commonDepth; i < toDepth; i++) {
+  for (var i = commonDepth; i < toDepth; i++) {
     toUnique = p.join(toUnique, toParts[i]);
   }
 
-  String climb = "../" * (fromDepth - commonDepth - 2);
+  final climb = '../' * (fromDepth - commonDepth - 2);
 
   return climb + toUnique;
 }

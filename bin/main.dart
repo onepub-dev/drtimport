@@ -4,12 +4,12 @@ import 'package:drtimport/patch_command.dart';
 import 'package:drtimport/pubspec.dart';
 
 void main(List<String> arguments) async {
-  PubSpec pubSpec = PubSpec();
+  var pubSpec = PubSpec();
   await pubSpec.load();
-  String version = pubSpec.version;
+  var version = pubSpec.version;
 
-  CommandRunner<void> runner =
-      CommandRunner("drtimport", "Dart import management, version: ${version}");
+  var runner = CommandRunner<void>(
+      'drtimport', 'Dart import management, version: ${version}');
 
   runner.addCommand(MoveCommand());
   runner.addCommand(PatchCommand());

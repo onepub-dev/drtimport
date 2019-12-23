@@ -15,12 +15,12 @@ class Library {
   Library(this.sourceFile, this.libRoot) {
     externalLib = !_isUnderLibRoot();
 
-    if (this.sourceFile.path.endsWith("office_holidays_dashlet.dart")) {
-      DartImportApp().debug("office_holidays_dashlet");
+    if (sourceFile.path.endsWith('office_holidays_dashlet.dart')) {
+      DartImportApp().debug('office_holidays_dashlet');
     }
 
     DartImportApp()
-        .debug("Processing: ${sourceFile} externalLib: $externalLib");
+        .debug('Processing: ${sourceFile} externalLib: $externalLib');
   }
 
   // File get file => sourceFile;
@@ -36,12 +36,12 @@ class Library {
   }
 
   Future<File> createTmpFile() async {
-    Directory systemTempDir = Directory.systemTemp;
+    final systemTempDir = Directory.systemTemp;
 
-    File tmpFile =
+    final tmpFile =
         File(p.join(systemTempDir.path, p.relative(sourceFile.path)));
 
-    Directory tmpDir = Directory(tmpFile.parent.path);
+    final tmpDir = Directory(tmpFile.parent.path);
     await tmpDir.create(recursive: true);
 
     return tmpFile;
@@ -49,7 +49,7 @@ class Library {
 
   void overwrite(File tmpFile) async {
     FileSystemEntity backupFile =
-        await sourceFile.rename(sourceFile.path + ".bak");
+        await sourceFile.rename(sourceFile.path + '.bak');
     await tmpFile.rename(sourceFile.path);
     await backupFile.delete();
   }
@@ -61,13 +61,13 @@ class Library {
   ///
   Future<MoveResult> updateImportStatements(File fromPath, File toPath) async {
     // Create temp file to write changes to.
-    File tmpFile = await createTmpFile();
+    final tmpFile = await createTmpFile();
 
-    IOSink tmpSink = tmpFile.openWrite();
+    final tmpSink = tmpFile.openWrite();
 
-    MoveResult result = MoveResult(this, tmpFile);
+    final result = MoveResult(this, tmpFile);
 
-    // print("Scanning: ${file.path}");
+    // print('Scanning: ${file.path}');
 
     await sourceFile
         .openRead()
@@ -82,11 +82,11 @@ class Library {
   }
 
   int replaceLine(String rawLine, File fromPath, File toPath, IOSink tmpSink) {
-    String newLine = rawLine;
+    var newLine = rawLine;
 
-    int changeCount = 0;
+    var changeCount = 0;
 
-    Line line = Line(this, rawLine);
+    final line = Line(this, rawLine);
     newLine = line.update(this, fromPath, toPath);
 
     if (rawLine != newLine) {
