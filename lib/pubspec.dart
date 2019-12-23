@@ -1,7 +1,7 @@
 import 'yaml.dart';
 
 class PubSpec {
-static final _self = PubSpec._internal();
+  static final _self = PubSpec._internal();
   Yaml yaml;
 
   factory PubSpec() {
