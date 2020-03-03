@@ -4,7 +4,7 @@ A command line application that allow helps refactor dart libraries.
 
 You can use it to move a library (or directory of libraries) and drtimport will update import statements across your whole package to reflect the new location of files.
 
-
+```
 Dart import management, version: 1.0.2
 
 Usage: drtimport <command> [arguments]
@@ -38,7 +38,7 @@ Patches import statements by doing a string replace within every import statemen
 <from string> <to string>
 e.g. AppClass app_class
 -h, --help    Print this usage information.
-
+```
 
 
 
