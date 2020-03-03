@@ -134,7 +134,11 @@ class Line {
   String _extractQuoted() {
     final regexString = r"'.*'";
     final regExp = RegExp(regexString);
+
     final matches = regExp.stringMatch(normalised);
+    if (matches == null) {
+      error('Line not quoted correctly:');
+    }
     if (matches.isEmpty) {
       throw Exception(
           'import line did not contain a valid path: ${normalised}');
@@ -258,5 +262,11 @@ class Line {
   /// after the path and we don't want to interfere with it.
   String replaceImportPath(String newPath) {
     return originalLine.replaceFirst(_extractQuoted(), newPath);
+  }
+
+  void error(String error) {
+    print(
+        '$error found in ${sourceLibrary.sourceFile.path} Line: $originalLine');
+    exit(1);
   }
 }

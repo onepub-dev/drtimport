@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dshell/dshell.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
@@ -106,10 +107,7 @@ class MoveCommand extends Command<void> {
 
     print('Renaming: ${fromPath} to ${toPath}');
 
-    final files = Directory.current.list(recursive: true);
-
-    final dartFiles =
-        await files.where((file) => file.path.endsWith('.dart')).toList();
+    final dartFiles = find('*.dart', root: pwd).toList();
 
     final updatedFiles = <MoveResult>[];
     var scanned = 0;
@@ -117,14 +115,14 @@ class MoveCommand extends Command<void> {
     for (var library in dartFiles) {
       scanned++;
 
-      final processing = Library(File(library.path), libRoot);
+      final processing = Library(File(library), libRoot);
       final result = await processing.updateImportStatements(fromPath, toPath);
 
       if (result.changeCount != 0) {
         updated++;
         updatedFiles.add(result);
 
-        print('Updated : ${library.path} changed ${result.changeCount} lines');
+        print('Updated : ${library} changed ${result.changeCount} lines');
       }
     }
 
@@ -161,7 +159,7 @@ class MoveCommand extends Command<void> {
   Future<Directory> validFromDirectory(String from) async {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
-    // will just pass in the name as the see it in the import statement (e.g. no lib)
+    // will just pass in the name as they see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
 
     final actualPath = Directory(p.canonicalize(p.join('lib', from)));
@@ -180,7 +178,7 @@ class MoveCommand extends Command<void> {
   Future<File> validTo(String to) async {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
-    // will just pass in the name as the see it in the import statement (e.g. no lib)
+    // will just pass in the name as they see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
     final actualPath = File(p.canonicalize(p.join('lib', to)));
     if (!await actualPath.parent.exists()) {
