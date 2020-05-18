@@ -60,6 +60,7 @@ class MakeRelativeCommand extends Command<void> {
     // check we are in the root.
     if (!await libRoot.exists()) {
       fullusage(error: 'You must run a move from the root of the package.');
+      exit(-1);
     }
 
     Line.init();
