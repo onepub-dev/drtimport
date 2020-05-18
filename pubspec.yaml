@@ -29,4 +29,4 @@ dev_dependencies:
   ## To compile to native.
   ## pub global activate --source path .
 executables:
-  drtimport:
+  drtimport: bin/main.dart
