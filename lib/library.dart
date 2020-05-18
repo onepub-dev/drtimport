@@ -96,8 +96,8 @@ class Library {
       //    result.changeCount += replaceLine(line, fromPath, toPath, tmpSink));
 
       final line = Line(this, rawLine);
-      var newLine = rawLine;
-      newLine = line.makeRelative(this);
+
+      var newLine = line.makeRelative(this);
 
       if (rawLine != newLine) {
         result.changeCount++;

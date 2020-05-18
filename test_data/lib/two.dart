@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:path/path.dart';
 
-import 'package:test_project/one.dart';
+import 'one.dart';
 
 int add(int a, int b) {
   return a + b;

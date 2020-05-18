@@ -273,7 +273,7 @@ class Line {
   /// If the line contains a local import then
   /// we change it to a relative import.
   String makeRelative(Library currentLibrary) {
-    String line;
+    var line = originalLine;
     if (_importType == ImportType.LOCAL_PACKAGE) {
       final relativeToLibrary = p.relative(_importedPath,
           from: currentLibrary.sourceFile.parent.path);

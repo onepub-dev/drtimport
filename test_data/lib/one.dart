@@ -1,4 +1,4 @@
-import 'package:test_project/two.dart';
+import 'two.dart';
 
 
 void tests() {

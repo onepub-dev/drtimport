@@ -11,8 +11,8 @@ linter:
     #- always_declare_return_types
 
 analyzer:
- strong-mode:
+  strong-mode:
     implicit-casts: false
     implicit-dynamic: false
-#   exclude:
-#     - path/to/excluded/files/**
+  exclude:
+    - test_data
