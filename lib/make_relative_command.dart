@@ -42,16 +42,19 @@ class MakeRelativeCommand extends Command<void> {
 
     if (argResults['version'] == true) {
       fullusage();
+      exit(-1);
     }
 
     if (argResults['debug'] == true) DartImportApp().enableDebug();
 
     if (argResults.rest.isNotEmpty) {
       fullusage();
+      exit(-1);
     }
     if (!await File('pubspec.yaml').exists()) {
       fullusage(
           error: 'The pubspec.yaml is missing from: ${Directory.current}');
+      exit(-1);
     }
 
     // check we are in the root.
@@ -173,10 +176,8 @@ class MakeRelativeCommand extends Command<void> {
     final version = pubSpec.version;
     print('drtimport version: ${version}');
     print('Usage: ');
-    print('move <from path> <to path>');
-    print('e.g. move apps/string.dart  util/string.dart');
+    print('relative');
+    print('e.g. changes all local imports to relative imports.');
     print(argParser.usage);
-
-    exit(-1);
   }
 }
