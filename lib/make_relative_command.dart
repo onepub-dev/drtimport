@@ -46,7 +46,7 @@ class MakeRelativeCommand extends Command<void> {
 
     if (argResults['debug'] == true) DartImportApp().enableDebug();
 
-    if (argResults.rest.length != 2) {
+    if (argResults.rest.isNotEmpty) {
       fullusage();
     }
     if (!await File('pubspec.yaml').exists()) {
