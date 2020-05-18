@@ -1,6 +1,7 @@
 import 'package:args/command_runner.dart';
 import 'package:drtimport/move_command.dart';
 import 'package:drtimport/patch_command.dart';
+import 'package:drtimport/make_relative_command.dart';
 import 'package:drtimport/pubspec.dart';
 
 void main(List<String> arguments) async {
@@ -12,6 +13,7 @@ void main(List<String> arguments) async {
       'drtimport', 'Dart import management, version: ${version}');
 
   runner.addCommand(MoveCommand());
+  runner.addCommand(MakeRelativeCommand());
   runner.addCommand(PatchCommand());
 
   await runner.run(arguments);

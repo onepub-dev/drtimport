@@ -59,13 +59,14 @@ class Library {
   /// so that they now point to 'toPath'.
   /// [fromPath] and [toPath] are [File]s relative to the lib directory.
   ///
-  Future<MoveResult> updateImportStatements(File fromPath, File toPath) async {
+  Future<ModifiedFile> updateImportStatements(
+      File fromPath, File toPath) async {
     // Create temp file to write changes to.
     final tmpFile = await createTmpFile();
 
     final tmpSink = tmpFile.openWrite();
 
-    final result = MoveResult(this, tmpFile);
+    final result = ModifiedFile(this, tmpFile);
 
     // print('Scanning: ${file.path}');
 
@@ -78,6 +79,34 @@ class Library {
 
     await tmpSink.close();
 
+    return result;
+  }
+
+  Future<ModifiedFile> makeImportsRelative() async {
+    // Create temp file to write changes to.
+    final tmpFile = await createTmpFile();
+    final result = ModifiedFile(this, tmpFile);
+    final tmpSink = tmpFile.openWrite();
+
+    await sourceFile
+        .openRead()
+        .transform(utf8.decoder)
+        .transform(LineSplitter())
+        .forEach((rawLine) {
+      //    result.changeCount += replaceLine(line, fromPath, toPath, tmpSink));
+
+      final line = Line(this, rawLine);
+      var newLine = rawLine;
+      newLine = line.makeRelative(this);
+
+      if (rawLine != newLine) {
+        result.changeCount++;
+      }
+
+      tmpSink.writeln(newLine);
+    });
+
+    await tmpSink.close();
     return result;
   }
 

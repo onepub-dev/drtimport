@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'library.dart';
 
-class MoveResult {
+class ModifiedFile {
   Library _library;
   File tmpFile;
   int changeCount = 0;
 
-  MoveResult(Library library, this.tmpFile) {
+  ModifiedFile(Library library, this.tmpFile) {
     _library = library;
   }
 

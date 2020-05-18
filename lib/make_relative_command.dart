@@ -11,18 +11,17 @@ import 'line.dart';
 import 'move_result.dart';
 import 'pubspec.dart';
 
-class MoveCommand extends Command<void> {
+class MakeRelativeCommand extends Command<void> {
   // This is the lib directory
   Directory libRoot;
   @override
   String get description =>
-      '''Moves a dart library and updates all import statements to reflect its new location.
-      move <from path> <to path>''';
+      '''Changes all local package references into relative references.''';
 
   @override
-  String get name => 'move';
+  String get name => 'relative';
 
-  MoveCommand() {
+  MakeRelativeCommand() {
     argParser.addOption('root',
         defaultsTo: '.',
         help: 'The path to the root of your project.',
@@ -66,47 +65,10 @@ class MoveCommand extends Command<void> {
       print('Package Name: ${Line.getProjectName()}');
     }
 
-    final from = stripLib(argResults.rest[0]);
-
-    final to = stripLib(argResults.rest[1]);
-
-    if (isDirectory(from)) {
-      await processDirectory(from, to);
-    } else {
-      final fromPath = await validFrom(from);
-
-      await process(fromPath, to, false);
-    }
+    await process();
   }
 
-  void processDirectory(String from, String to) async {
-    final fromPath = await validFromDirectory(from);
-
-    for (var entry in fromPath.listSync()) {
-      if (entry is File) {
-        await process(entry, to, true);
-      }
-    }
-  }
-
-  void process(File fromPath, String to, bool fromDirectory) async {
-    if (isDirectory(to)) {
-      // The [to] path is a directory so use the
-      // fromPaths filename to complete the target pathname.
-      to = p.join(to, p.basename(fromPath.path));
-    } else {
-      if (fromDirectory) {
-        // The target must also be a directory and it must exist
-        fullusage(
-            error:
-                'The <to> path ${expandPath(to)} MUST be a directory and it must exist');
-      }
-    }
-
-    final toPath = await validTo(to);
-
-    print('Renaming: ${fromPath} to ${toPath}');
-
+  void process() async {
     final dartFiles = find('*.dart', root: pwd).toList();
 
     final updatedFiles = <ModifiedFile>[];
@@ -116,7 +78,7 @@ class MoveCommand extends Command<void> {
       scanned++;
 
       final processing = Library(File(library), libRoot);
-      final result = await processing.updateImportStatements(fromPath, toPath);
+      final result = await processing.makeImportsRelative();
 
       if (result.changeCount != 0) {
         updated++;
@@ -128,9 +90,6 @@ class MoveCommand extends Command<void> {
 
     await overwrite(updatedFiles);
 
-    await fromPath.exists();
-
-    await fromPath.rename(toPath.path);
     print('Finished: scanned $scanned updated $updated');
   }
 
@@ -219,16 +178,5 @@ class MoveCommand extends Command<void> {
     print(argParser.usage);
 
     exit(-1);
-  }
-
-  /// remove the leading lib/ prefix of the to/from paths
-  String stripLib(String path) {
-    if (path.startsWith('lib/')) {
-      return path.substring('lib/'.length);
-    } else {
-      fullusage(error: 'The path "$path" must start with "lib/"');
-      // will never happen as fullusage exits.
-      return null;
-    }
   }
 }
