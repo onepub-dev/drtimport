@@ -77,7 +77,7 @@ class WatchCommand extends Command<void> {
     Settings().setVerbose(true);
     print('scanning for directoryies in $pwd');
     final directories = find('*',
-        root: pwd,
+        root: libRoot.path,
         recursive: true,
         types: [FileSystemEntityType.directory]).toList();
 
@@ -106,7 +106,8 @@ class WatchCommand extends Command<void> {
       print(
           'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
     } else if (event is FileSystemMoveEvent) {
-      bool actioned = false;
+      var actioned = false;
+
       print('dected move');
       print(
           'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
@@ -141,5 +142,11 @@ class WatchCommand extends Command<void> {
     print('relative');
     print('e.g. changes all local imports to relative imports.');
     print(argParser.usage);
+  }
+
+  bool isUnderLib(String path) {
+    var relpath = relative(path, from: libRoot.path);
+
+    return !relpath.startsWith('..');
   }
 }
