@@ -1,3 +1,6 @@
+## 1.0.6
+New command added `drtimport relative` which changes all local imports to relative imports as required by effective dart.
+
 ## 1.0.5
 Fixed an logger override.
 

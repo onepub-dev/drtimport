@@ -3,6 +3,7 @@ import 'package:drtimport/move_command.dart';
 import 'package:drtimport/patch_command.dart';
 import 'package:drtimport/make_relative_command.dart';
 import 'package:drtimport/pubspec.dart';
+import 'package:drtimport/watch_command.dart';
 
 void main(List<String> arguments) async {
   var pubSpec = PubSpec();
@@ -15,6 +16,7 @@ void main(List<String> arguments) async {
   runner.addCommand(MoveCommand());
   runner.addCommand(MakeRelativeCommand());
   runner.addCommand(PatchCommand());
+  runner.addCommand(WatchCommand());
 
   await runner.run(arguments);
 }

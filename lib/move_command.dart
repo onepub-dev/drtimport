@@ -59,16 +59,18 @@ class MoveCommand extends Command<void> {
     if (!await libRoot.exists()) {
       fullusage(error: 'You must run a move from the root of the package.');
     }
-
-    Line.init();
-
     if (DartImportApp().isdebugging) {
       print('Package Name: ${Line.getProjectName()}');
     }
 
-    final from = stripLib(argResults.rest[0]);
+    move(from: argResults.rest[0], to: argResults.rest[1]);
+  }
 
-    final to = stripLib(argResults.rest[1]);
+  void move({String from, String to}) async {
+    Line.init();
+
+    from = stripLib(from);
+    to = stripLib(to);
 
     if (isDirectory(from)) {
       await processDirectory(from, to);

@@ -1,6 +1,6 @@
 name: drtimport
 description: An cli app to help you refactor you dart libraries because VSCode won't.
-version: 1.0.5
+version: 1.0.6
 homepage: https://github.com/bsutton/cli_tools_for_dart
 
 environment:
@@ -29,4 +29,4 @@ dev_dependencies:
   ## To compile to native.
   ## pub global activate --source path .
 executables:
-  drtimport: bin/main.dart
+  drtimport: main
