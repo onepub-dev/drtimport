@@ -84,7 +84,12 @@ class WatchCommand extends Command<void> {
     var controller = StreamController<FileSystemEvent>();
     controller.stream.listen((event) => onMove(event));
 
-    /// start a watch on every subdirectory.
+    print('watching ${libRoot.path}');
+    libRoot
+        .watch(events: FileSystemEvent.move | FileSystemEvent.modify)
+        .listen((event) => controller.add(event));
+
+    /// start a watch on every subdirectory of lib
     for (var directory in directories) {
       print('watching $directory');
 
