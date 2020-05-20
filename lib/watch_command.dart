@@ -118,11 +118,14 @@ class WatchCommand extends Command<void> {
           'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
       if (event.isDirectory) {
         actioned = true;
-        MoveCommand().move(from: event.path, to: event.destination);
+        MoveCommand().move(
+            from: libRelative(event.path), to: libRelative(event.destination));
       } else {
         if (extension(event.path) == '.dart') {
           actioned = true;
-          MoveCommand().move(from: event.path, to: event.destination);
+          MoveCommand().move(
+              from: libRelative(event.path),
+              to: libRelative(event.destination));
         }
       }
       if (actioned) {
@@ -153,5 +156,9 @@ class WatchCommand extends Command<void> {
     var relpath = relative(path, from: libRoot.path);
 
     return !relpath.startsWith('..');
+  }
+
+  String libRelative(String path) {
+    return join('lib', relative(path, from: libRoot.path));
   }
 }
