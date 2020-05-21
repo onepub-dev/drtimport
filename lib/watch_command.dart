@@ -81,7 +81,15 @@ class WatchCommand extends Command<void> {
         recursive: true,
         types: [FileSystemEntityType.directory]).toList();
 
-    controller.stream.listen((event) => onFileSystemEvent(event));
+    StreamSubscription<FileSystemEvent> subscriber;
+    subscriber = controller.stream.listen((event) async {
+      // serialise the events
+      // otherwise we end up trying to move multiple files
+      // at once and that doesn't work.
+      subscriber.pause();
+      await onFileSystemEvent(event);
+      subscriber.resume();
+    });
 
     watchDirectory(libRoot);
 
@@ -103,40 +111,41 @@ class WatchCommand extends Command<void> {
         .listen((event) => controller.add(event));
   }
 
-  void onFileSystemEvent(FileSystemEvent event) {
+  void onFileSystemEvent(FileSystemEvent event) async {
     if (event is FileSystemCreateEvent) {
-      onCreateEvent(event);
+      await onCreateEvent(event);
     } else if (event is FileSystemModifyEvent) {
-      onModifyEvent(event);
+      await onModifyEvent(event);
     } else if (event is FileSystemMoveEvent) {
-      onMoveEvent(event);
+      await onMoveEvent(event);
     } else if (event is FileSystemDeleteEvent) {
-      onDeleteEvent(event);
+      await onDeleteEvent(event);
     }
   }
 
-  void onModifyEvent(FileSystemModifyEvent event) {
-    print('detected modify');
-    print(
-        'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
+  void onModifyEvent(FileSystemModifyEvent event) async {
+    // print(blue('detected modify'));
+    // print(
+    //     'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
   }
 
-  void onCreateEvent(FileSystemCreateEvent event) {
+  void onCreateEvent(FileSystemCreateEvent event) async {
     if (event.isDirectory) {
       Directory(event.path)
           .watch(events: FileSystemEvent.all)
           .listen((event) => controller.add(event));
       print('Added directory watch to ${event.path}');
     } else {
-      print('File created at ${event.path}');
+      print(blue('File created at ${event.path}'));
       if (lastDeleted != null) {
         if (basename(event.path) == basename(lastDeleted)) {
-          print('detected move from: $lastDeleted to: ${event.path}');
-          MoveCommand().moveFile(
+          print(red('Move from: $lastDeleted to: ${event.path}'));
+          await MoveCommand().moveFile(
               from: lastDeleted,
               to: event.path,
               fromDirectory: false,
               alreadyMoved: true);
+          print(red('Completed move from: $lastDeleted to: ${event.path}'));
           lastDeleted = null;
         }
       }
@@ -145,15 +154,15 @@ class WatchCommand extends Command<void> {
 
   String lastDeleted;
 
-  void onDeleteEvent(FileSystemDeleteEvent event) {
-    print('detected delete');
-    print('details: directory: ${event.isDirectory} ${event.path}');
+  void onDeleteEvent(FileSystemDeleteEvent event) async {
+    
+    print('Delete: directory: ${event.isDirectory} ${event.path}');
     if (!event.isDirectory) {
       lastDeleted = event.path;
     }
   }
 
-  void onMoveEvent(FileSystemMoveEvent event) {
+  void onMoveEvent(FileSystemMoveEvent event) async {
     var actioned = false;
 
     var from = event.path;
@@ -161,16 +170,15 @@ class WatchCommand extends Command<void> {
 
     if (event.isDirectory) {
       actioned = true;
-      MoveCommand().moveDirectory(
+      await MoveCommand().moveDirectory(
           from: libRelative(from), to: libRelative(to), alreadyMoved: true);
     } else {
       if (extension(from) == '.dart') {
-        actioned = true;
-
         /// we don't process the move if the 'to' isn't a dart file.
         /// e.g. ignore a target of <lib>.dart.bak
         if (isDirectory(to) || isFile(to) && extension(to) == '.dart') {
-          MoveCommand().moveFile(
+          actioned = true;
+          await MoveCommand().moveFile(
               from: libRelative(from),
               to: libRelative(to),
               fromDirectory: false,
@@ -179,11 +187,8 @@ class WatchCommand extends Command<void> {
       }
     }
     if (actioned) {
-      print('detected move');
       print(
-          'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
-    } else {
-      print('ignored');
+          'Move: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
     }
   }
 

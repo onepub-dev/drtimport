@@ -87,9 +87,10 @@ class Library {
         .openRead()
         .transform(utf8.decoder)
         .transform(LineSplitter())
-        .forEach((line) => result.changeCount +=
-            replaceLine(line, File(fromPath), File(toPath), tmpSink));
+        .forEach((line) async => result.changeCount +=
+            await replaceLine(line, File(fromPath), File(toPath), tmpSink));
 
+    await tmpSink.flush();
     await tmpSink.close();
 
     return result;
@@ -119,6 +120,7 @@ class Library {
       tmpSink.writeln(newLine);
     });
 
+    await tmpSink.flush();
     await tmpSink.close();
     return result;
   }
