@@ -97,7 +97,7 @@ class WatchCommand extends Command<void> {
   }
 
   void watchDirectory(Directory directory) {
-    print('watching ${libRoot.path}');
+    print('watching ${directory.path}');
     directory
         .watch(events: FileSystemEvent.all)
         .listen((event) => controller.add(event));
@@ -127,10 +127,31 @@ class WatchCommand extends Command<void> {
           .watch(events: FileSystemEvent.all)
           .listen((event) => controller.add(event));
       print('Added directory watch to ${event.path}');
+    } else {
+      print('File created at ${event.path}');
+      if (lastDeleted != null) {
+        if (basename(event.path) == basename(lastDeleted)) {
+          print('detected move from: $lastDeleted to: ${event.path}');
+          MoveCommand().moveFile(
+              from: lastDeleted,
+              to: event.path,
+              fromDirectory: false,
+              alreadyMoved: true);
+          lastDeleted = null;
+        }
+      }
     }
   }
 
-  void onDeleteEvent(FileSystemDeleteEvent event) {}
+  String lastDeleted;
+
+  void onDeleteEvent(FileSystemDeleteEvent event) {
+    print('detected delete');
+    print('details: directory: ${event.isDirectory} ${event.path}');
+    if (!event.isDirectory) {
+      lastDeleted = event.path;
+    }
+  }
 
   void onMoveEvent(FileSystemMoveEvent event) {
     var actioned = false;
