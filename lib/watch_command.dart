@@ -118,14 +118,18 @@ class WatchCommand extends Command<void> {
           'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
       if (event.isDirectory) {
         actioned = true;
-        MoveCommand().move(
-            from: libRelative(event.path), to: libRelative(event.destination));
+        MoveCommand().moveDirectory(
+            from: libRelative(event.path),
+            to: libRelative(event.destination),
+            alreadyMoved: true);
       } else {
         if (extension(event.path) == '.dart') {
           actioned = true;
-          MoveCommand().move(
-              from: libRelative(event.path),
-              to: libRelative(event.destination));
+          MoveCommand().moveFile(
+              from: File(libRelative(event.path)),
+              to: libRelative(event.destination),
+              fromDirectory: false,
+              alreadyMoved: true);
         }
       }
       if (actioned) {

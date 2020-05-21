@@ -63,39 +63,50 @@ class MoveCommand extends Command<void> {
       print('Package Name: ${Line.getProjectName()}');
     }
 
+    Line.init();
     move(from: argResults.rest[0], to: argResults.rest[1]);
   }
 
-  void move({String from, String to}) async {
-    Line.init();
-
+  /// [alreadyMoved] means that the from path no longer exists
+  /// as it has been moved by another system.
+  /// In this case we just need to update the imports.
+  void move({String from, String to, bool alreadyMoved = false}) async {
     from = stripLib(from);
     to = stripLib(to);
 
     if (isDirectory(from)) {
-      await processDirectory(from, to);
+      await moveDirectory(from: from, to: to, alreadyMoved: alreadyMoved);
     } else {
       final fromPath = await validFrom(from);
 
-      await process(fromPath, to, false);
+      await moveFile(
+          from: fromPath,
+          to: to,
+          fromDirectory: false,
+          alreadyMoved: alreadyMoved);
     }
   }
 
-  void processDirectory(String from, String to) async {
-    final fromPath = await validFromDirectory(from);
+  void moveDirectory({String from, String to, bool alreadyMoved}) async {
+    final fromPath = validFromDirectory(from, validate: !alreadyMoved);
 
     for (var entry in fromPath.listSync()) {
       if (entry is File) {
-        await process(entry, to, true);
+        await moveFile(
+            from: entry,
+            to: to,
+            fromDirectory: true,
+            alreadyMoved: alreadyMoved);
       }
     }
   }
 
-  void process(File fromPath, String to, bool fromDirectory) async {
+  void moveFile(
+      {File from, String to, bool fromDirectory, bool alreadyMoved}) async {
     if (isDirectory(to)) {
       // The [to] path is a directory so use the
       // fromPaths filename to complete the target pathname.
-      to = p.join(to, p.basename(fromPath.path));
+      to = p.join(to, p.basename(from.path));
     } else {
       if (fromDirectory) {
         // The target must also be a directory and it must exist
@@ -105,9 +116,11 @@ class MoveCommand extends Command<void> {
       }
     }
 
-    final toPath = await validTo(to);
+    final toPath = validTo(to);
 
-    print('Renaming: ${fromPath} to ${toPath}');
+    if (!alreadyMoved) {
+      print('Renaming: ${from.path} to ${toPath}');
+    }
 
     final dartFiles = find('*.dart', root: pwd).toList();
 
@@ -118,7 +131,7 @@ class MoveCommand extends Command<void> {
       scanned++;
 
       final processing = Library(File(library), libRoot);
-      final result = await processing.updateImportStatements(fromPath, toPath);
+      final result = await processing.updateImportStatements(from, toPath);
 
       if (result.changeCount != 0) {
         updated++;
@@ -130,9 +143,11 @@ class MoveCommand extends Command<void> {
 
     await overwrite(updatedFiles);
 
-    await fromPath.exists();
+    if (!alreadyMoved) {
+      await from.exists();
 
-    await fromPath.rename(toPath.path);
+      await from.rename(toPath.path);
+    }
     print('Finished: scanned $scanned updated $updated');
   }
 
@@ -158,7 +173,7 @@ class MoveCommand extends Command<void> {
   ///
   /// [from] can be a file or a path.
   ///
-  Future<Directory> validFromDirectory(String from) async {
+  Directory validFromDirectory(String from, {bool validate = true}) {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
     // will just pass in the name as they see it in the import statement (e.g. no lib)
@@ -166,7 +181,7 @@ class MoveCommand extends Command<void> {
 
     final actualPath = Directory(p.canonicalize(p.join('lib', from)));
 
-    if (!await actualPath.exists()) {
+    if (!actualPath.existsSync()) {
       fullusage(
           error:
               "The <fromPath> is not a valid filepath: '${actualPath.path}'");
@@ -177,13 +192,13 @@ class MoveCommand extends Command<void> {
   ///
   /// [to] can be a file or a path.
   ///
-  Future<File> validTo(String to) async {
+  File validTo(String to) {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
     // will just pass in the name as they see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
     final actualPath = File(p.canonicalize(p.join('lib', to)));
-    if (!await actualPath.parent.exists()) {
+    if (!actualPath.parent.existsSync()) {
       fullusage(
           error: 'The <toPath> directory does not exist: ${actualPath.parent}');
     }
