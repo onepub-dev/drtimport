@@ -12,6 +12,7 @@ import 'line.dart';
 import 'pubspec.dart';
 
 class WatchCommand extends Command<void> {
+  var controller = StreamController<FileSystemEvent>();
   // This is the lib directory
   Directory libRoot;
   @override
@@ -80,12 +81,11 @@ class WatchCommand extends Command<void> {
         recursive: true,
         types: [FileSystemEntityType.directory]).toList();
 
-    var controller = StreamController<FileSystemEvent>();
     controller.stream.listen((event) => onFileSystemEvent(event));
 
     print('watching ${libRoot.path}');
     libRoot
-        .watch(events: FileSystemEvent.move | FileSystemEvent.modify)
+        .watch(events: FileSystemEvent.all)
         .listen((event) => controller.add(event));
 
     /// start a watch on every subdirectory of lib
@@ -105,42 +105,65 @@ class WatchCommand extends Command<void> {
   }
 
   void onFileSystemEvent(FileSystemEvent event) {
-    if (event is FileSystemModifyEvent) {
-      // print('detected modify');
-      // print(
-      //     'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
+    if (event is FileSystemCreateEvent) {
+      onCreateEvent(event);
+    } else if (event is FileSystemModifyEvent) {
+      onModifyEvent(event);
     } else if (event is FileSystemMoveEvent) {
-      var actioned = false;
+      onMoveEvent(event);
+    } else if (event is FileSystemDeleteEvent) {
+      onDeleteEvent(event);
+    }
+  }
 
-      var from = event.path;
-      var to = event.destination;
+  void onModifyEvent(FileSystemModifyEvent event) {
+    print('detected modify');
+    print(
+        'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
+  }
 
-      if (event.isDirectory) {
+  void onCreateEvent(FileSystemCreateEvent event) {
+    if (event.isDirectory) {
+      Directory(event.path)
+          .watch(events: FileSystemEvent.all)
+          .listen((event) => controller.add(event));
+      print('Added directory watch to ${event.path}');
+    }
+  }
+
+  void onDeleteEvent(FileSystemDeleteEvent event) {}
+
+  void onMoveEvent(FileSystemMoveEvent event) {
+    var actioned = false;
+
+    var from = event.path;
+    var to = event.destination;
+
+    if (event.isDirectory) {
+      actioned = true;
+      MoveCommand().moveDirectory(
+          from: libRelative(from), to: libRelative(to), alreadyMoved: true);
+    } else {
+      if (extension(from) == '.dart') {
         actioned = true;
-        MoveCommand().moveDirectory(
-            from: libRelative(from), to: libRelative(to), alreadyMoved: true);
-      } else {
-        if (extension(from) == '.dart') {
-          actioned = true;
 
-          /// we don't process the move if the 'to' isn't a dart file.
-          /// e.g. ignore a target of <lib>.dart.bak
-          if (isDirectory(to) || isFile(to) && extension(to) == '.dart') {
-            MoveCommand().moveFile(
-                from: libRelative(from),
-                to: libRelative(to),
-                fromDirectory: false,
-                alreadyMoved: true);
-          }
+        /// we don't process the move if the 'to' isn't a dart file.
+        /// e.g. ignore a target of <lib>.dart.bak
+        if (isDirectory(to) || isFile(to) && extension(to) == '.dart') {
+          MoveCommand().moveFile(
+              from: libRelative(from),
+              to: libRelative(to),
+              fromDirectory: false,
+              alreadyMoved: true);
         }
       }
-      if (actioned) {
-        print('detected move');
-        print(
-            'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
-      } else {
-        print('ignored');
-      }
+    }
+    if (actioned) {
+      print('detected move');
+      print(
+          'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
+    } else {
+      print('ignored');
     }
   }
 
