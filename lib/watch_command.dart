@@ -6,7 +6,6 @@ import 'package:dshell/dshell.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
-import 'package:pedantic/pedantic.dart';
 
 import 'dart_import_app.dart';
 import 'line.dart';
@@ -82,7 +81,7 @@ class WatchCommand extends Command<void> {
         types: [FileSystemEntityType.directory]).toList();
 
     var controller = StreamController<FileSystemEvent>();
-    controller.stream.listen((event) => onMove(event));
+    controller.stream.listen((event) => onFileSystemEvent(event));
 
     print('watching ${libRoot.path}');
     libRoot
@@ -105,35 +104,40 @@ class WatchCommand extends Command<void> {
     await forever.future;
   }
 
-  void onMove(FileSystemEvent event) {
+  void onFileSystemEvent(FileSystemEvent event) {
     if (event is FileSystemModifyEvent) {
-      print('dected modify');
-      print(
-          'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
+      // print('detected modify');
+      // print(
+      //     'details: directory: ${event.isDirectory} ${event.path} content: ${event.contentChanged}');
     } else if (event is FileSystemMoveEvent) {
       var actioned = false;
 
-      print('dected move');
-      print(
-          'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
+      var from = event.path;
+      var to = event.destination;
+
       if (event.isDirectory) {
         actioned = true;
         MoveCommand().moveDirectory(
-            from: libRelative(event.path),
-            to: libRelative(event.destination),
-            alreadyMoved: true);
+            from: libRelative(from), to: libRelative(to), alreadyMoved: true);
       } else {
-        if (extension(event.path) == '.dart') {
+        if (extension(from) == '.dart') {
           actioned = true;
-          MoveCommand().moveFile(
-              from: File(libRelative(event.path)),
-              to: libRelative(event.destination),
-              fromDirectory: false,
-              alreadyMoved: true);
+
+          /// we don't process the move if the 'to' isn't a dart file.
+          /// e.g. ignore a target of <lib>.dart.bak
+          if (isDirectory(to) || isFile(to) && extension(to) == '.dart') {
+            MoveCommand().moveFile(
+                from: libRelative(from),
+                to: libRelative(to),
+                fromDirectory: false,
+                alreadyMoved: true);
+          }
         }
       }
       if (actioned) {
-        print('actioned');
+        print('detected move');
+        print(
+            'details: directory: ${event.isDirectory} ${event.path} destination: ${event.destination}');
       } else {
         print('ignored');
       }

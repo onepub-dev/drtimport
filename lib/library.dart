@@ -60,7 +60,7 @@ class Library {
   /// [fromPath] and [toPath] are [File]s relative to the lib directory.
   ///
   Future<ModifiedFile> updateImportStatements(
-      File fromPath, File toPath) async {
+      String fromPath, String toPath) async {
     // Create temp file to write changes to.
     final tmpFile = await createTmpFile();
 
@@ -74,8 +74,8 @@ class Library {
         .openRead()
         .transform(utf8.decoder)
         .transform(LineSplitter())
-        .forEach((line) =>
-            result.changeCount += replaceLine(line, fromPath, toPath, tmpSink));
+        .forEach((line) => result.changeCount +=
+            replaceLine(line, File(fromPath), File(toPath), tmpSink));
 
     await tmpSink.close();
 
