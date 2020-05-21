@@ -12,6 +12,10 @@ class Library {
   bool externalLib;
   Directory libRoot;
 
+  /// If this library was moved then this will
+  /// contain its original path.
+  String from;
+
   Library(this.sourceFile, this.libRoot) {
     externalLib = !_isUnderLibRoot();
 
@@ -28,6 +32,15 @@ class Library {
   bool get isExternal => externalLib;
 
   String get directory => sourceFile.parent.path;
+
+  /// returns the directory where the library hails from.
+  /// For most libraries this is the current location but
+  /// for the one library we are moving this will be its original
+  /// path.
+  /// This is important for processing import statements which
+  /// will be relative to the original libraries location.
+  String get originalDirectory =>
+      (from == null ? sourceFile.parent.path : p.dirname(from));
 
   ///
   /// Returns true if the library is under the lib directory
@@ -124,5 +137,9 @@ class Library {
     tmpSink.writeln(newLine);
 
     return changeCount;
+  }
+
+  void setFrom(String from) {
+    this.from = from;
   }
 }

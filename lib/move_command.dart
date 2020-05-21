@@ -111,6 +111,8 @@ class MoveCommand extends Command<void> {
 
     if (!alreadyMoved) {
       print('Renaming: ${from} to ${to}');
+      await File(from).exists();
+      await File(from).rename(to);
     }
 
     final dartFiles = find('*.dart', root: pwd).toList();
@@ -122,23 +124,24 @@ class MoveCommand extends Command<void> {
       scanned++;
 
       final processing = Library(File(library), libRoot);
-      final result = await processing.updateImportStatements(from, to);
+      /// If this is the library we have just moved then
+      /// we need to record its original location so its import
+      /// statements are processed correctly against the original location.
+      if (processing.sourceFile.path == to) {
+        processing.setFrom(from);
+      }
+      final modifiedFile = await processing.updateImportStatements(from, to);
 
-      if (result.changeCount != 0) {
+      if (modifiedFile.changeCount != 0) {
         updated++;
-        updatedFiles.add(result);
+        updatedFiles.add(modifiedFile);
 
-        print('Updated : ${library} changed ${result.changeCount} lines');
+        print('Updated : ${library} changed ${modifiedFile.changeCount} lines');
       }
     }
 
     await overwrite(updatedFiles);
 
-    if (!alreadyMoved) {
-      await File(from).exists();
-
-      await File(from).rename(to);
-    }
     print('Finished: scanned $scanned updated $updated');
   }
 
