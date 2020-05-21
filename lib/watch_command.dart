@@ -83,25 +83,24 @@ class WatchCommand extends Command<void> {
 
     controller.stream.listen((event) => onFileSystemEvent(event));
 
-    print('watching ${libRoot.path}');
-    libRoot
-        .watch(events: FileSystemEvent.all)
-        .listen((event) => controller.add(event));
+    watchDirectory(libRoot);
 
     /// start a watch on every subdirectory of lib
     for (var directory in directories) {
-      print('watching $directory');
-
-      /// we don't use recursive watch as not supported on all platforms.
-      Directory(directory)
-          .watch(events: FileSystemEvent.move | FileSystemEvent.modify)
-          .listen((event) => controller.add(event));
+      watchDirectory(Directory(directory));
     }
 
     var forever = Completer<void>();
 
     // wait until someone does ctrl-c.
     await forever.future;
+  }
+
+  void watchDirectory(Directory directory) {
+    print('watching ${libRoot.path}');
+    directory
+        .watch(events: FileSystemEvent.all)
+        .listen((event) => controller.add(event));
   }
 
   void onFileSystemEvent(FileSystemEvent event) {
