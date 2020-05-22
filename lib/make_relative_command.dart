@@ -81,6 +81,9 @@ class MakeRelativeCommand extends Command<void> {
     for (var library in dartFiles) {
       scanned++;
 
+      /// relative paths are only applicable to files in the lib dir.
+      if (!isWithin(join(pwd, 'lib'), library)) continue;
+
       final processing = Library(File(library), libRoot);
       final result = await processing.makeImportsRelative();
 
