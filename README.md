@@ -13,9 +13,10 @@ Global options:
 -h, --help    Print this usage information.
 
 Available commands:
-  help    Display help information for drtimport.
-  move    Moves a dart library and updates all import statements to reflect its new location.
-  patch   Patches import statements by doing a string replace.
+  help     Display help information for drtimport.
+  move     Moves a dart library and updates all import statements to reflect its new location.
+  patch    Patches import statements by doing a string replace.
+  relative Changes all local paths from package to relative.
 
 Run "drtimport help <command>" for more information about a command.
 
