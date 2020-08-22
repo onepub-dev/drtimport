@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dshell/dshell.dart';
+import 'package:dcli/dcli.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
@@ -124,6 +124,7 @@ class MoveCommand extends Command<void> {
       scanned++;
 
       final processing = Library(File(library), libRoot);
+
       /// If this is the library we have just moved then
       /// we need to record its original location so its import
       /// statements are processed correctly against the original location.

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:drtimport/move_command.dart';
-import 'package:dshell/dshell.dart';
+import 'package:dcli/dcli.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
@@ -74,7 +74,7 @@ class WatchCommand extends Command<void> {
   }
 
   void process() async {
-    Settings().setVerbose(true);
+    Settings().setVerbose(enabled: true);
     print('scanning for directoryies in $pwd');
     final directories = find('*',
         root: libRoot.path,
@@ -155,7 +155,6 @@ class WatchCommand extends Command<void> {
   String lastDeleted;
 
   void onDeleteEvent(FileSystemDeleteEvent event) async {
-    
     print('Delete: directory: ${event.isDirectory} ${event.path}');
     if (!event.isDirectory) {
       lastDeleted = event.path;

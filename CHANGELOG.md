@@ -1,3 +1,6 @@
+# 1.0.7
+
+Added logic to stop it setting non lib files to relative imports as these should always be package imports.
 ## 1.0.6
 New command added `drtimport relative` which changes all local imports to relative imports as required by effective dart.
 

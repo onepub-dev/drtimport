@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dshell/dshell.dart';
+import 'package:dcli/dcli.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
@@ -81,8 +81,12 @@ class MakeRelativeCommand extends Command<void> {
     for (var library in dartFiles) {
       scanned++;
 
+      /// print('checking within $library');
+
       /// relative paths are only applicable to files in the lib dir.
-      if (!isWithin(join(pwd, 'lib'), library)) continue;
+      if (!isWithin(libRoot.path, library)) continue;
+
+      print('processing $library');
 
       final processing = Library(File(library), libRoot);
       final result = await processing.makeImportsRelative();

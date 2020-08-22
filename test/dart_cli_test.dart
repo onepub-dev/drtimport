@@ -1,10 +1,10 @@
+@Timeout(Duration(seconds: 600))
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:drtimport/move_command.dart';
 import 'package:drtimport/patch_command.dart';
 
-@Timeout(Duration(seconds: 600))
 import 'package:test/test.dart';
 
 import 'package:path/path.dart' as p;
@@ -161,8 +161,7 @@ Future<bool> run(List<String> arguments) async {
   final cwd = p.current;
   try {
     print(arguments);
-    final runner =
-        CommandRunner<void>('drtimport', 'dart import management');
+    final runner = CommandRunner<void>('drtimport', 'dart import management');
 
     runner.addCommand(MoveCommand());
     runner.addCommand(PatchCommand());

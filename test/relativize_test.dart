@@ -7,6 +7,7 @@ void main() {
   test('relativize', () {
     expect(relativize('/dir1/dir2', '/dir1/dir2/dir3/file1'), 'dir3/file1');
     expect(relativize('dir1/dir2', 'dir1/dir2/dir3/file1'), 'dir3/file1');
+    expect(relativize('dir1/dir2/file1', 'dir1/dir2/file2'), 'file2');
 
     // expect(relativize('/lib/app/debug/debug.dart', '/abc/def/three.dart'),
     //     '../../abc/def/three.dart');
