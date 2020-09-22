@@ -9,7 +9,6 @@ import 'package:args/command_runner.dart';
 
 import 'dart_import_app.dart';
 import 'line.dart';
-import 'pubspec.dart';
 
 class WatchCommand extends Command<void> {
   var controller = StreamController<FileSystemEvent>();
@@ -197,8 +196,7 @@ class WatchCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = PubSpec();
-    await pubSpec.load();
+    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
     final version = pubSpec.version;
     print('drtimport version: ${version}');
     print('Usage: ');

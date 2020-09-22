@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:dcli/dcli.dart';
 import 'package:path/path.dart' as p;
 import 'package:path/path.dart';
 
 import 'dart_import_app.dart';
 import 'library.dart';
-import 'pubspec.dart';
 
 enum ImportType {
   NOT // not an import line
@@ -161,8 +161,7 @@ class Line {
   /// reads the project name from the yaml file
   ///
   static String getProjectName() {
-    final pubSpec = PubSpec();
-    pubSpec.load();
+    var pubSpec = DartProject.fromPath('.', search: true).pubSpec;
     return pubSpec.name;
   }
 

@@ -9,7 +9,6 @@ import 'dart_import_app.dart';
 import 'library.dart';
 import 'line.dart';
 import 'move_result.dart';
-import 'pubspec.dart';
 
 class MoveCommand extends Command<void> {
   @override
@@ -185,8 +184,7 @@ class MoveCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = PubSpec();
-    await pubSpec.load();
+    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
     final version = pubSpec.version;
     print('drtimport version: ${version}');
     print('Usage: ');

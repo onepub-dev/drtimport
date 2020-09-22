@@ -9,7 +9,6 @@ import 'dart_import_app.dart';
 import 'library.dart';
 import 'line.dart';
 import 'move_result.dart';
-import 'pubspec.dart';
 
 class MakeRelativeCommand extends Command<void> {
   // This is the lib directory
@@ -51,7 +50,7 @@ class MakeRelativeCommand extends Command<void> {
       fullusage();
       exit(-1);
     }
-    if (!await File('pubspec.yaml').exists()) {
+    if (!exists('pubspec.yaml')) {
       fullusage(
           error: 'The pubspec.yaml is missing from: ${Directory.current}');
       exit(-1);
@@ -179,8 +178,8 @@ class MakeRelativeCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = PubSpec();
-    await pubSpec.load();
+    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
+
     final version = pubSpec.version;
     print('drtimport version: ${version}');
     print('Usage: ');

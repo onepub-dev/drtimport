@@ -1,13 +1,13 @@
+import 'package:dcli/dcli.dart';
+
 import 'package:args/command_runner.dart';
 import 'package:drtimport/move_command.dart';
 import 'package:drtimport/patch_command.dart';
 import 'package:drtimport/watch_command.dart';
 import 'package:drtimport/make_relative_command.dart';
-import 'package:drtimport/pubspec.dart';
 
 void main(List<String> arguments) async {
-  var pubSpec = PubSpec();
-  await pubSpec.load();
+  var pubSpec = DartProject.fromPath('.', search: true).pubSpec;
   var version = pubSpec.version;
 
   var runner = CommandRunner<void>(
