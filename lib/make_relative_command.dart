@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dcli/dcli.dart';
+import 'package:drtimport/src/version/version.g.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
@@ -12,13 +13,16 @@ import 'move_result.dart';
 
 class MakeRelativeCommand extends Command<void> {
   // This is the lib directory
-  Directory libRoot;
+  String pathToLib;
   @override
   String get description =>
       '''Changes all local package references into relative references.''';
 
   @override
   String get name => 'relative';
+
+  DartProject _project;
+  String _projectRoot;
 
   MakeRelativeCommand() {
     argParser.addOption('root',
@@ -36,43 +40,45 @@ class MakeRelativeCommand extends Command<void> {
 
   @override
   void run() async {
-    Directory.current = argResults['root'];
-    libRoot = Directory(p.join(Directory.current.path, 'lib'));
+    var root = argResults['root'] as String;
+
+    root ??= pwd;
 
     if (argResults['version'] == true) {
       fullusage();
-      exit(-1);
     }
 
     if (argResults['debug'] == true) DartImportApp().enableDebug();
 
-    if (argResults.rest.isNotEmpty) {
+    if (argResults.rest.length != 2) {
       fullusage();
-      exit(-1);
     }
-    if (!exists('pubspec.yaml')) {
+
+    _project = DartProject.fromPath(root);
+    _projectRoot = _project.pathToProjectRoot;
+
+    if (!_project.hasPubSpec) {
       fullusage(
-          error: 'The pubspec.yaml is missing from: ${Directory.current}');
-      exit(-1);
+          error:
+              'The project root directory ${_projectRoot} does not contain a pubspec.yaml');
     }
+
+    var pubspec = _project.pubSpec;
+    print(orange('Processing project ${pubspec.name} in ${_projectRoot}'));
 
     // check we are in the root.
-    if (!await libRoot.exists()) {
-      fullusage(error: 'You must run a move from the root of the package.');
-      exit(-1);
+    if (!exists(join(_projectRoot, 'lib'))) {
+      fullusage(
+          error:
+              'Your project structure looks invalid. You must have a "lib" directory in the root of your project.');
     }
-
-    Line.init();
-
-    if (DartImportApp().isdebugging) {
-      print('Package Name: ${Line.getProjectName()}');
-    }
+    Line.init(_project);
 
     await process();
   }
 
   void process() async {
-    final dartFiles = find('*.dart', root: pwd).toList();
+    final dartFiles = find('*.dart', root: _projectRoot).toList();
 
     final updatedFiles = <ModifiedFile>[];
     var scanned = 0;
@@ -83,11 +89,11 @@ class MakeRelativeCommand extends Command<void> {
       /// print('checking within $library');
 
       /// relative paths are only applicable to files in the lib dir.
-      if (!isWithin(libRoot.path, library)) continue;
+      if (!isWithin(pathToLib, library)) continue;
 
       print('processing $library');
 
-      final processing = Library(File(library), libRoot);
+      final processing = Library(library, pathToLib);
       final result = await processing.makeImportsRelative();
 
       if (result.changeCount != 0) {
@@ -106,55 +112,57 @@ class MakeRelativeCommand extends Command<void> {
   ///
   /// [from] can be a file or a path.
   ///
-  Future<File> validFrom(String from) async {
+  String validFrom(String from) {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
     // will just pass in the name as the see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
 
-    final actualPath = File(p.canonicalize(p.join('lib', from)));
-
-    if (!await actualPath.exists()) {
+    if (!exists(from)) {
       fullusage(
-          error:
-              "The <fromPath> is not a valid filepath: '${actualPath.path}'");
+          error: "The <fromPath> is not a valid filepath: '${truepath(from)}'");
     }
-    return actualPath;
+    return from;
   }
 
   ///
   /// [from] can be a file or a path.
   ///
-  Future<Directory> validFromDirectory(String from) async {
+  String validFromDirectory(String from) {
     // all file paths are relative to lib/ but
     // the imports don't include lib so devs
     // will just pass in the name as they see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
 
-    final actualPath = Directory(p.canonicalize(p.join('lib', from)));
-
-    if (!await actualPath.exists()) {
+    if (!exists(from)) {
       fullusage(
-          error:
-              "The <fromPath> is not a valid filepath: '${actualPath.path}'");
+          error: "The <fromPath> is not a valid filepath: '${truepath(from)}'");
     }
-    return actualPath;
+    return from;
   }
 
   ///
   /// [to] can be a file or a path.
   ///
-  Future<File> validTo(String to) async {
-    // all file paths are relative to lib/ but
-    // the imports don't include lib so devs
+  String validTo(String to) {
     // will just pass in the name as they see it in the import statement (e.g. no lib)
     // but when we are validating the actual path we need the lib.
-    final actualPath = File(p.canonicalize(p.join('lib', to)));
-    if (!await actualPath.parent.exists()) {
-      fullusage(
-          error: 'The <toPath> directory does not exist: ${actualPath.parent}');
+
+    if (to.endsWith('.dart')) {
+      if (!exists(to)) {
+        return to;
+      } else {
+        fullusage(
+            error:
+                'The <toPath> dart file already exist. You can not move over an existing file');
+      }
+    } else {
+      if (!exists(to)) {
+        fullusage(
+            error: 'The <toPath> directory does not exist: ${truepath(to)}');
+      }
     }
-    return actualPath;
+    return to;
   }
 
   void overwrite(List<ModifiedFile> updatedFiles) async {
@@ -178,10 +186,7 @@ class MakeRelativeCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
-
-    final version = pubSpec.version;
-    print('drtimport version: ${version}');
+    print('drtimport version: ${packageVersion}');
     print('Usage: ');
     print('relative');
     print('e.g. changes all local imports to relative imports.');

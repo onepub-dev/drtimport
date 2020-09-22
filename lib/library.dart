@@ -2,36 +2,37 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:dcli/dcli.dart';
 
 import 'dart_import_app.dart';
 import 'line.dart';
 import 'move_result.dart';
 
 class Library {
-  File sourceFile;
+  String pathToSourceFile;
   bool externalLib;
-  Directory libRoot;
+  String pathToLib;
 
   /// If this library was moved then this will
   /// contain its original path.
   String from;
 
-  Library(this.sourceFile, this.libRoot) {
+  Library(this.pathToSourceFile, this.pathToLib) {
     externalLib = !_isUnderLibRoot();
 
-    if (sourceFile.path.endsWith('office_holidays_dashlet.dart')) {
+    if (pathToSourceFile.endsWith('office_holidays_dashlet.dart')) {
       DartImportApp().debug('office_holidays_dashlet');
     }
 
     DartImportApp()
-        .debug('Processing: ${sourceFile} externalLib: $externalLib');
+        .debug('Processing: ${pathToSourceFile} externalLib: $externalLib');
   }
 
   // File get file => sourceFile;
 
   bool get isExternal => externalLib;
 
-  String get directory => sourceFile.parent.path;
+  String get directory => p.dirname(pathToSourceFile);
 
   /// returns the directory where the library hails from.
   /// For most libraries this is the current location but
@@ -40,31 +41,26 @@ class Library {
   /// This is important for processing import statements which
   /// will be relative to the original libraries location.
   String get originalDirectory =>
-      (from == null ? sourceFile.parent.path : p.dirname(from));
+      (from == null ? p.dirname(pathToSourceFile) : p.dirname(from));
 
   ///
   /// Returns true if the library is under the lib directory
   bool _isUnderLibRoot() {
-    return p.isWithin(libRoot.path, sourceFile.path);
+    return p.isWithin(pathToLib, pathToSourceFile);
   }
 
-  Future<File> createTmpFile() async {
-    final systemTempDir = Directory.systemTemp;
-
-    final tmpFile =
-        File(p.join(systemTempDir.path, p.relative(sourceFile.path)));
-
-    final tmpDir = Directory(tmpFile.parent.path);
-    await tmpDir.create(recursive: true);
+  String createTmpFile() {
+    var tmpFile = FileSync.tempFile();
+    touch(tmpFile, create: true);
 
     return tmpFile;
   }
 
-  void overwrite(File tmpFile) async {
-    FileSystemEntity backupFile =
-        await sourceFile.rename(sourceFile.path + '.bak');
-    await tmpFile.rename(sourceFile.path);
-    await backupFile.delete();
+  void overwrite(File tmpFile) {
+    var backupFile = pathToSourceFile + '.bak';
+    move(pathToSourceFile, backupFile);
+    move(tmpFile.path, pathToSourceFile);
+    delete(backupFile);
   }
 
   /// Updates any the import statements in the passed
@@ -72,10 +68,9 @@ class Library {
   /// so that they now point to 'toPath'.
   /// [fromPath] and [toPath] are [File]s relative to the lib directory.
   ///
-  Future<ModifiedFile> updateImportStatements(
-      String fromPath, String toPath) async {
+  ModifiedFile updateImportStatements(String fromPath, String toPath) {
     // Create temp file to write changes to.
-    final tmpFile = await createTmpFile();
+    final tmpFile = File(createTmpFile());
 
     final tmpSink = tmpFile.openWrite();
 
@@ -83,26 +78,28 @@ class Library {
 
     // print('Scanning: ${file.path}');
 
-    await sourceFile
+    waitForEx<void>(File(pathToSourceFile)
         .openRead()
         .transform(utf8.decoder)
         .transform(LineSplitter())
-        .forEach((line) async => result.changeCount +=
-            await replaceLine(line, File(fromPath), File(toPath), tmpSink));
+        .forEach((line) {
+      var changes = replaceLine(line, File(fromPath), File(toPath), tmpSink);
+      result.changeCount += changes;
+    }));
 
-    await tmpSink.flush();
-    await tmpSink.close();
+    waitForEx<void>(tmpSink.flush());
+    waitForEx<void>(tmpSink.close());
 
     return result;
   }
 
   Future<ModifiedFile> makeImportsRelative() async {
     // Create temp file to write changes to.
-    final tmpFile = await createTmpFile();
+    final tmpFile = File(createTmpFile());
     final result = ModifiedFile(this, tmpFile);
     final tmpSink = tmpFile.openWrite();
 
-    await sourceFile
+    await File(pathToSourceFile)
         .openRead()
         .transform(utf8.decoder)
         .transform(LineSplitter())
@@ -143,5 +140,67 @@ class Library {
 
   void setFrom(String from) {
     this.from = from;
+  }
+
+  /// sorts an files import directives.
+  /// We use the location of the first import statement as the insertion
+  /// point for all directives
+  void sortDirectives() {
+    var importLines = <String>[];
+    var otherLines = <String>[];
+    var firstImport = -1;
+    var lines = read(pathToSourceFile).toList();
+
+    var backupFile = pathToSourceFile + '.bak';
+    move(pathToSourceFile, backupFile);
+
+    touch(pathToSourceFile, create: true);
+
+    var count = 0;
+    for (var line in lines) {
+      if (line.trim().startsWith("import '")) {
+        importLines.add(line);
+
+        if (firstImport == -1) {
+          firstImport = count;
+        }
+      } else {
+        otherLines.add(line);
+      }
+      count++;
+    }
+
+    sortImports(importLines);
+
+    count = 0;
+    for (var line in otherLines) {
+      if (count == firstImport) {
+        for (var import in importLines) {
+          pathToSourceFile.append(import);
+        }
+      }
+      pathToSourceFile.append(line);
+      count++;
+    }
+
+    delete(backupFile);
+  }
+
+  void sortImports(List<String> importLines) {
+    importLines.sort((lhs, rhs) {
+      var lhsval = 0;
+      var rhsval = 0;
+      if (lhs.contains('dart:')) lhsval = 10;
+      if (rhs.contains('dart:')) rhsval = 10;
+
+      if (lhsval != rhsval) return rhsval - lhsval;
+
+      if (lhs.contains('package:')) lhsval = 100;
+      if (rhs.contains('package:')) rhsval = 100;
+
+      if (lhsval != rhsval) return rhsval - lhsval;
+
+      return lhs.compareTo(rhs);
+    });
   }
 }

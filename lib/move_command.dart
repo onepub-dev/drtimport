@@ -9,6 +9,7 @@ import 'dart_import_app.dart';
 import 'library.dart';
 import 'line.dart';
 import 'move_result.dart';
+import 'src/version/version.g.dart';
 
 class MoveCommand extends Command<void> {
   @override
@@ -19,11 +20,14 @@ class MoveCommand extends Command<void> {
   @override
   String get name => 'move';
 
+  DartProject _project;
+  String _projectRoot;
+
+  String pathToLib;
+
   MoveCommand() {
     argParser.addOption('root',
-        defaultsTo: '.',
-        help: 'The path to the root of your project.',
-        valueHelp: 'path');
+        help: 'The path to the root of your project.', valueHelp: 'path');
     argParser.addFlag('debug',
         defaultsTo: false, negatable: false, help: 'Turns on debug ouput');
     argParser.addFlag('version',
@@ -35,7 +39,9 @@ class MoveCommand extends Command<void> {
 
   @override
   void run() async {
-    Directory.current = argResults['root'];
+    var root = argResults['root'] as String;
+
+    root ??= pwd;
 
     if (argResults['version'] == true) {
       fullusage();
@@ -46,41 +52,51 @@ class MoveCommand extends Command<void> {
     if (argResults.rest.length != 2) {
       fullusage();
     }
-    if (!await File('pubspec.yaml').exists()) {
+
+    _project = DartProject.fromPath(root);
+    _projectRoot = _project.pathToProjectRoot;
+    pathToLib = p.join(_projectRoot, 'lib');
+
+    if (!_project.hasPubSpec) {
       fullusage(
-          error: 'The pubspec.yaml is missing from: ${Directory.current}');
+          error:
+              'The project root directory ${_projectRoot} does not contain a pubspec.yaml');
     }
+
+    var pubspec = _project.pubSpec;
+    print(orange('Processing project ${pubspec.name} in ${_projectRoot}'));
 
     // check we are in the root.
-    if (!await Directory('lib').exists()) {
-      fullusage(error: 'You must run a move from the root of the package.');
-    }
-    if (DartImportApp().isdebugging) {
-      print('Package Name: ${Line.getProjectName()}');
+    if (!exists(join(_projectRoot, 'lib'))) {
+      fullusage(
+          error:
+              'Your project structure looks invalid. You must have a "lib" directory in the root of your project.');
     }
 
-    Line.init();
-    move(from: argResults.rest[0], to: argResults.rest[1]);
+    Line.init(_project);
+    var from = argResults.rest[0];
+    var to = argResults.rest[1];
+    importMove(from: join(_projectRoot, from), to: join(_projectRoot, to));
   }
 
   /// [alreadyMoved] means that the from path no longer exists
   /// as it has been moved by another system.
   /// In this case we just need to update the imports.
-  void move({String from, String to, bool alreadyMoved = false}) async {
+  void importMove({String from, String to, bool alreadyMoved = false}) async {
     if (isDirectory(from)) {
-      await moveDirectory(from: from, to: to, alreadyMoved: alreadyMoved);
+      await importMoveDirectory(from: from, to: to, alreadyMoved: alreadyMoved);
     } else {
       await moveFile(
           from: from, to: to, fromDirectory: false, alreadyMoved: alreadyMoved);
     }
   }
 
-  void moveDirectory({String from, String to, bool alreadyMoved}) async {
+  void importMoveDirectory({String from, String to, bool alreadyMoved}) async {
     validateFrom(from, alreadyMoved);
 
     for (var entry in Directory(from).listSync()) {
       if (entry is File) {
-        await moveFile(
+        moveFile(
             from: entry.path,
             to: to,
             fromDirectory: true,
@@ -90,31 +106,28 @@ class MoveCommand extends Command<void> {
   }
 
   void moveFile(
-      {String from, String to, bool fromDirectory, bool alreadyMoved}) async {
+      {String from, String to, bool fromDirectory, bool alreadyMoved}) {
     validateFrom(from, alreadyMoved);
-    var libRoot = Directory(p.join(Directory.current.path, 'lib'));
+
+    var toDir = to;
+    if (to.endsWith('*.dart')) {
+      toDir = dirname(to);
+    }
+
+    if (!exists(toDir)) createDir(toDir, recursive: true);
+
     if (isDirectory(to)) {
       // The [to] path is a directory so use the
       // fromPaths filename to complete the target pathname.
       to = p.join(to, p.basename(from));
-    } else {
-      if (fromDirectory) {
-        // The target must also be a directory and it must exist
-        fullusage(
-            error:
-                'The <to> path ${expandPath(to)} MUST be a directory and it must exist');
-      }
     }
-
-    validateTo(to);
 
     if (!alreadyMoved) {
       print('Renaming: ${from} to ${to}');
-      await File(from).exists();
-      await File(from).rename(to);
+      move(from, to);
     }
 
-    final dartFiles = find('*.dart', root: pwd).toList();
+    final dartFiles = find('*.dart', root: _projectRoot).toList();
 
     final updatedFiles = <ModifiedFile>[];
     var scanned = 0;
@@ -122,15 +135,15 @@ class MoveCommand extends Command<void> {
     for (var library in dartFiles) {
       scanned++;
 
-      final processing = Library(File(library), libRoot);
+      final processing = Library(library, pathToLib);
 
       /// If this is the library we have just moved then
       /// we need to record its original location so its import
       /// statements are processed correctly against the original location.
-      if (processing.sourceFile.path == to) {
+      if (processing.pathToSourceFile == to) {
         processing.setFrom(from);
       }
-      final modifiedFile = await processing.updateImportStatements(from, to);
+      final modifiedFile = processing.updateImportStatements(from, to);
 
       if (modifiedFile.changeCount != 0) {
         updated++;
@@ -140,7 +153,7 @@ class MoveCommand extends Command<void> {
       }
     }
 
-    await overwrite(updatedFiles);
+    overwrite(updatedFiles);
 
     print('Finished: scanned $scanned updated $updated');
   }
@@ -149,23 +162,16 @@ class MoveCommand extends Command<void> {
   /// [from] can be a file or a path.
   ///
   void validateFrom(String from, bool alreadyMoved) {
-    if (!alreadyMoved && !File(from).existsSync()) {
-      fullusage(error: "The <fromPath> is not a valid filepath: '${from}'");
+    if (!alreadyMoved && !exists(from)) {
+      fullusage(
+          error: "The <fromPath> is not a valid filepath: '${truepath(from)}'");
     }
   }
 
-  ///
-  /// [to] can be a file or a path.
-  ///
-  void validateTo(String to) {
-    if (!File(to).existsSync()) {
-      fullusage(error: 'The <toPath> directory does not exist: ${dirname(to)}');
-    }
-  }
-
-  void overwrite(List<ModifiedFile> updatedFiles) async {
+  void overwrite(List<ModifiedFile> updatedFiles) {
     for (final result in updatedFiles) {
-      await result.library.overwrite(result.tmpFile);
+      result.library.overwrite(result.tmpFile);
+      result.library.sortDirectives();
     }
   }
 
@@ -184,9 +190,7 @@ class MoveCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
-    final version = pubSpec.version;
-    print('drtimport version: ${version}');
+    print('drtimport version: ${packageVersion}');
     print('Usage: ');
     print('move <from path> <to path>');
     print('e.g. move apps/string.dart  util/string.dart');

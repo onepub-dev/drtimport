@@ -21,7 +21,7 @@ enum ImportType {
 
 class Line {
   static String _projectName;
-  static Directory libRoot;
+  static String pathToLib;
   static String projectPrefix;
   static String dartPrefix = 'dart:';
   static String packagePrefix = 'package:';
@@ -36,10 +36,13 @@ class Line {
 
   String get importedPath => _importedPath;
 
-  static void init() async {
-    _projectName = await getProjectName();
+  static DartProject _project;
+
+  static void init(DartProject project) async {
+    _project = project;
+    _projectName = _project.pubSpec.name;
     projectPrefix = 'package:${_projectName}';
-    libRoot = Directory(p.join(Directory.current.path, 'lib'));
+    pathToLib = p.join(_project.pathToProjectRoot, 'lib');
   }
 
   Line(this.sourceLibrary, String line) {
@@ -121,7 +124,7 @@ class Line {
         finalPath = p.canonicalize(
             p.join(sourceLibrary.originalDirectory, importedPath));
       } else {
-        finalPath = p.canonicalize(p.join(libRoot.path, importedPath));
+        finalPath = p.canonicalize(p.join(pathToLib, importedPath));
       }
     } else {
       // the import is to an external library so we don't modify it.
@@ -158,13 +161,6 @@ class Line {
     return normalised;
   }
 
-  /// reads the project name from the yaml file
-  ///
-  static String getProjectName() {
-    var pubSpec = DartProject.fromPath('.', search: true).pubSpec;
-    return pubSpec.name;
-  }
-
   String update(Library currentLibrary, File fromFile, File toFile) {
     ///NOTE: all imports are relative to the 'lib' directory.
     ///
@@ -175,11 +171,11 @@ class Line {
     if (_importType == ImportType.RELATIVE ||
         _importType == ImportType.LOCAL_PACKAGE) {
       DartImportApp().debug('Processing line: ${originalLine}');
-      final relativeFromPath = p.relative(fromFile.path, from: libRoot.path);
+      final relativeFromPath = p.relative(fromFile.path, from: pathToLib);
 
-      var importsRelativePath = p.relative(importedPath, from: libRoot.path);
+      var importsRelativePath = p.relative(importedPath, from: pathToLib);
 
-      if (currentLibrary.sourceFile.path == toFile.path) {
+      if (currentLibrary.pathToSourceFile == toFile.path) {
         // We are processing the file we are moving.
         final relativeImportPath =
             p.relative(importedPath, from: dirname(toFile.path));
@@ -192,8 +188,8 @@ class Line {
       } else {
         // processing any library but the one we are moving.
         var relativeToLibrary = p.relative(toFile.path,
-            from: currentLibrary.sourceFile.parent.path);
-        final relativeToLibRoot = p.relative(toFile.path, from: libRoot.path);
+            from: p.dirname(currentLibrary.pathToSourceFile));
+        final relativeToLibRoot = p.relative(toFile.path, from: pathToLib);
 
         // does the import path match the file we are looking to change.
         DartImportApp().debug(
@@ -216,7 +212,7 @@ class Line {
             // must be a [ImportType.RELATIVE]
             /// relative paths are relative to each other not lib.
             relativeToLibrary = p.relative(toFile.path,
-                from: dirname(currentLibrary.sourceFile.path));
+                from: dirname(currentLibrary.pathToSourceFile));
 
             DartImportApp().debug('Library is internal, path is relative');
             line = replaceImportPath(relativeToLibrary);
@@ -270,7 +266,7 @@ class Line {
 
   void error(String error) {
     print(
-        '$error found in ${sourceLibrary.sourceFile.path} Line: $originalLine');
+        '$error found in ${sourceLibrary.pathToSourceFile} Line: $originalLine');
     exit(1);
   }
 
@@ -280,7 +276,7 @@ class Line {
     var line = originalLine;
     if (_importType == ImportType.LOCAL_PACKAGE) {
       final relativeToLibrary = p.relative(_importedPath,
-          from: currentLibrary.sourceFile.parent.path);
+          from: p.dirname(currentLibrary.pathToSourceFile));
 
       line = replaceImportPath('${relativeToLibrary}');
     }

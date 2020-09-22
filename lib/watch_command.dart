@@ -3,23 +3,24 @@ import 'dart:io';
 
 import 'package:drtimport/move_command.dart';
 import 'package:dcli/dcli.dart';
-import 'package:path/path.dart' as p;
 
 import 'package:args/command_runner.dart';
 
 import 'dart_import_app.dart';
 import 'line.dart';
+import 'src/version/version.g.dart';
 
 class WatchCommand extends Command<void> {
   var controller = StreamController<FileSystemEvent>();
-  // This is the lib directory
-  Directory libRoot;
   @override
   String get description =>
       '''Changes all local package references into relative references.''';
 
   @override
   String get name => 'watch';
+
+  DartProject _project;
+  String _projectRoot;
 
   WatchCommand() {
     argParser.addOption('root',
@@ -37,37 +38,39 @@ class WatchCommand extends Command<void> {
 
   @override
   void run() async {
-    Directory.current = argResults['root'];
-    libRoot = Directory(p.join(Directory.current.path, 'lib'));
+    var root = argResults['root'] as String;
+
+    root ??= pwd;
 
     if (argResults['version'] == true) {
       fullusage();
-      exit(-1);
     }
 
     if (argResults['debug'] == true) DartImportApp().enableDebug();
 
-    if (argResults.rest.isNotEmpty) {
+    if (argResults.rest.length != 2) {
       fullusage();
-      exit(-1);
     }
-    if (!await File('pubspec.yaml').exists()) {
+
+    _project = DartProject.fromPath(root);
+    _projectRoot = _project.pathToProjectRoot;
+
+    if (!_project.hasPubSpec) {
       fullusage(
-          error: 'The pubspec.yaml is missing from: ${Directory.current}');
-      exit(-1);
+          error:
+              'The project root directory ${_projectRoot} does not contain a pubspec.yaml');
     }
+
+    var pubspec = _project.pubSpec;
+    print(orange('Processing project ${pubspec.name} in ${_projectRoot}'));
 
     // check we are in the root.
-    if (!await libRoot.exists()) {
-      fullusage(error: 'You must run a move from the root of the package.');
-      exit(-1);
+    if (!exists(join(_projectRoot, 'lib'))) {
+      fullusage(
+          error:
+              'Your project structure looks invalid. You must have a "lib" directory in the root of your project.');
     }
-
-    Line.init();
-
-    if (DartImportApp().isdebugging) {
-      print('Package Name: ${Line.getProjectName()}');
-    }
+    Line.init(_project);
 
     await process();
   }
@@ -75,10 +78,9 @@ class WatchCommand extends Command<void> {
   void process() async {
     Settings().setVerbose(enabled: true);
     print('scanning for directoryies in $pwd');
-    final directories = find('*',
-        root: libRoot.path,
-        recursive: true,
-        types: [FileSystemEntityType.directory]).toList();
+    final directories =
+        find('*', root: _projectRoot, recursive: true, types: [Find.directory])
+            .toList();
 
     StreamSubscription<FileSystemEvent> subscriber;
     subscriber = controller.stream.listen((event) async {
@@ -90,11 +92,11 @@ class WatchCommand extends Command<void> {
       subscriber.resume();
     });
 
-    watchDirectory(libRoot);
+    watchDirectory(_projectRoot);
 
-    /// start a watch on every subdirectory of lib
+    /// start a watch on every subdirectory of _projectRoot
     for (var directory in directories) {
-      watchDirectory(Directory(directory));
+      watchDirectory(directory);
     }
 
     var forever = Completer<void>();
@@ -103,9 +105,9 @@ class WatchCommand extends Command<void> {
     await forever.future;
   }
 
-  void watchDirectory(Directory directory) {
-    print('watching ${directory.path}');
-    directory
+  void watchDirectory(String projectRoot) {
+    print('watching ${projectRoot}');
+    Directory(projectRoot)
         .watch(events: FileSystemEvent.all)
         .listen((event) => controller.add(event));
   }
@@ -168,7 +170,7 @@ class WatchCommand extends Command<void> {
 
     if (event.isDirectory) {
       actioned = true;
-      await MoveCommand().moveDirectory(
+      await MoveCommand().importMoveDirectory(
           from: libRelative(from), to: libRelative(to), alreadyMoved: true);
     } else {
       if (extension(from) == '.dart') {
@@ -196,9 +198,7 @@ class WatchCommand extends Command<void> {
       print('');
     }
 
-    final pubSpec = DartProject.fromPath('.', search: true).pubSpec;
-    final version = pubSpec.version;
-    print('drtimport version: ${version}');
+    print('drtimport version: ${packageVersion}');
     print('Usage: ');
     print('relative');
     print('e.g. changes all local imports to relative imports.');
@@ -206,12 +206,12 @@ class WatchCommand extends Command<void> {
   }
 
   bool isUnderLib(String path) {
-    var relpath = relative(path, from: libRoot.path);
+    var relpath = relative(path, from: join(_projectRoot, 'lib'));
 
     return !relpath.startsWith('..');
   }
 
   String libRelative(String path) {
-    return join('lib', relative(path, from: libRoot.path));
+    return join('lib', relative(path, from: join(_projectRoot, 'lib')));
   }
 }

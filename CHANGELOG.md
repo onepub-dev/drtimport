@@ -1,3 +1,9 @@
+# 2.0.0
+Added logic to sort imports when we move a file.
+Change the paths to be relative to the root of the project to facilitate auto completion when moving files.
+
+updated to dcli 0.28
+
 # 1.0.7
 
 Added logic to stop it setting non lib files to relative imports as these should always be package imports.
