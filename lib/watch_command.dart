@@ -1,3 +1,8 @@
+/* Copyright (C) S. Brett Sutton - All Rights Reserved
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * Written by Brett Sutton <bsutton@onepub.dev>, Jan 2022
+ */
 import 'dart:async';
 import 'dart:io';
 
@@ -79,7 +84,7 @@ class WatchCommand extends Command<void> {
     Settings().setVerbose(enabled: true);
     print('scanning for directoryies in $pwd');
     final directories =
-        find('*', root: _projectRoot, recursive: true, types: [Find.directory])
+        find('*', workingDirectory: _projectRoot, recursive: true, types: [Find.directory])
             .toList();
 
     StreamSubscription<FileSystemEvent> subscriber;
